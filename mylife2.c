@@ -7,6 +7,7 @@
 #define width 70
 #define cell_number height * width
 
+//initialize alive or dead patterns of the cells
 void my_init_cells(int cell[height][width], FILE* fp) {
     //ファイルがない場合の初期配置
     if (fp == NULL){
@@ -27,32 +28,49 @@ void my_init_cells(int cell[height][width], FILE* fp) {
     }
 }
 
-void my_print_cells(FILE* fp, int gen, int cell[height][width]) {
-    printf("generation = %d\n", gen);
-    //上の壁
-    printf("+");
-    for (int i = 0; i < width; ++i) {
-        printf("-");
-    }
-    printf("+\n");
-    //中身
+//calculate the ratio of living cells
+double cell_ratio(int cell[height][width]) {
+    int num = 0;
+    double ratio;
     for (int i = 0; i < height; ++i) {
-        printf("|");
         for (int j = 0; j < width; ++j) {
-            if (cell[i][j]) {
-                printf("\e[31m#\e[0m");
-            }else {
-                printf(" ");
+            if (cell[i][j] == 1) {
+                num++;
             }
         }
-        printf("|\n");
     }
-    //下の壁
-    printf("+");
-    for (int i = 0; i < width; ++i) {
-        printf("-");
-    }
-    printf("+\n");
+    ratio = (double)num / (height * width);
+    return ratio;
+}
+
+//display the condition of all cells
+void my_print_cells(FILE* fp, int gen, int cell[height][width]) {
+        fprintf(fp, "geneneration = %d\n", gen);
+        fprintf(fp, "living cell ratio = %f\n", cell_ratio(cell));
+        //the top wall
+        fprintf(fp, "+");
+        for (int i = 0; i < width; ++i) {
+            fprintf(fp, "-");
+        }
+        fprintf(fp, "+\n");
+        //the content
+        for (int i = 0; i < height; ++i) {
+            fprintf(fp, "|");
+            for (int j = 0; j < width; ++j) {
+                if (cell[i][j]) {
+                    fprintf(fp, "\e[31m#\e[0m");
+                }else {
+                    fprintf(fp, " ");
+                }
+            }
+            fprintf(fp, "|\n");
+        }
+        //the bottom wall
+        fprintf(fp, "+");
+        for (int i = 0; i < width; ++i) {
+            fprintf(fp, "-");
+        }
+        fprintf(fp, "+\n");
 }
 
 //個別のセルの次状態を別の配列に書いておく
@@ -138,17 +156,24 @@ int main(int argc, char **argv) {
         my_init_cells(cell, NULL); // デフォルトの初期値を使う
     }
     
-    my_print_cells(fp, 0, cell); // 表示する
-    sleep(1); // 1秒休止
-    fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
+    //my_print_cells(fp, 0, cell); // 表示する
+    //sleep(1); // 1秒休止
+    //fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
     
     /* 世代を進める*/
-    for (int gen = 1 ;; gen++) {
+    for (int gen = 1 ;gen < 10000; gen++) {
         my_update_cells(cell); // セルを更新
-        my_print_cells(fp, gen, cell);  // 表示する
-        sleep(1); //1秒休止する
-        fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
+        FILE *fp;
+        if (gen % 100 == 0) {
+            char filename[20];
+            sprintf(filename, "gen%04d.lif", gen);
+            fp = fopen(filename, "w");
+            my_print_cells(fp, gen, cell);// 表示する
+        }
+        //sleep(1); //1秒休止する
+        //fprintf(fp,"\e[%dA",height+3);//height+3 の分、カーソルを上に戻す(壁2、表示部1)
     }
+    fclose(fp);
     
     return EXIT_SUCCESS;
 }
